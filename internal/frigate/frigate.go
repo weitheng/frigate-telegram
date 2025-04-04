@@ -188,13 +188,6 @@ func SaveClip(EventID string, bot *tgbotapi.BotAPI) string {
 	// Generate uniq filename
 	filename := "/tmp/" + EventID + ".mp4"
 
-	// Create clip file
-	f, err := os.Create(filename)
-	if err != nil {
-		ErrorSend("Error when create file: "+err.Error(), bot, EventID)
-	}
-	defer f.Close()
-
 	// Download clip file
 	resp, err := http.Get(ClipURL)
 	if err != nil {
@@ -207,11 +200,32 @@ func SaveClip(EventID string, bot *tgbotapi.BotAPI) string {
 		ErrorSend("Return bad status: "+resp.Status, bot, EventID)
 	}
 
+	// Create clip file
+	f, err := os.Create(filename)
+	if err != nil {
+		ErrorSend("Error when create file: "+err.Error(), bot, EventID)
+	}
+	
 	// Writer the body to file
 	_, err = io.Copy(f, resp.Body)
 	if err != nil {
+		f.Close()
 		ErrorSend("Error clip write: "+err.Error(), bot, EventID)
 	}
+	
+	// Ensure file is properly synced to disk
+	err = f.Sync()
+	if err != nil {
+		f.Close()
+		ErrorSend("Error syncing file to disk: "+err.Error(), bot, EventID)
+	}
+	
+	// Explicitly close the file before returning filename
+	err = f.Close()
+	if err != nil {
+		ErrorSend("Error closing clip file: "+err.Error(), bot, EventID)
+	}
+	
 	return filename
 }
 
