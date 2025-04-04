@@ -260,16 +260,21 @@ func SendMessageEvent(FrigateEvent EventStruct, bot *tgbotapi.BotAPI) {
 
 	// Save thumbnail
 	FilePathThumbnail := SaveThumbnail(FrigateEvent.ID, FrigateEvent.Thumbnail, bot)
-
+	
 	var medias []interface{}
 	MediaThumbnail := tgbotapi.NewInputMediaPhoto(tgbotapi.FilePath(FilePathThumbnail))
 	MediaThumbnail.Caption = text
 	MediaThumbnail.ParseMode = tgbotapi.ModeMarkdown
 	medias = append(medias, MediaThumbnail)
 
+	// Define FilePathClip outside the if block to make it available later
+	var FilePathClip string
+	var hasClip bool
+
 	if FrigateEvent.HasClip && FrigateEvent.EndTime != 0 {
 		// Save clip
-		FilePathClip := SaveClip(FrigateEvent.ID, bot)
+		FilePathClip = SaveClip(FrigateEvent.ID, bot)
+		hasClip = true
 
 		videoInfo, err := os.Stat(FilePathClip)
 		if err != nil {
@@ -301,7 +306,7 @@ func SendMessageEvent(FrigateEvent EventStruct, bot *tgbotapi.BotAPI) {
 	}
 
 	// Now we can safely remove the files after the media group is sent
-	if FrigateEvent.HasClip && FrigateEvent.EndTime != 0 {
+	if hasClip {
 		os.Remove(FilePathClip)
 	}
 	os.Remove(FilePathThumbnail)
